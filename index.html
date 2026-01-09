@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Project</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #0f172a;
+      color: #e5e7eb;
+      line-height: 1.6;
+    }
+
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #020617;
+      position: sticky;
+      top: 0;
+    }
+
+    header h1 {
+      color: #38bdf8;
+      font-size: 22px;
+    }
+
+    nav a {
+      color: #e5e7eb;
+      margin-left: 20px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      color: #38bdf8;
+    }
+
+    .hero {
+      padding: 100px 40px;
+      text-align: center;
+    }
+
+    .hero h2 {
+      font-size: 42px;
+      margin-bottom: 15px;
+    }
+
+    .hero p {
+      max-width: 600px;
+      margin: auto;
+      color: #94a3b8;
+    }
+
+    .hero button {
+      margin-top: 30px;
+      padding: 12px 28px;
+      border: none;
+      background: #38bdf8;
+      color: #020617;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .hero button:hover {
+      background: #0ea5e9;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 60px 40px;
+    }
+
+    .card {
+      background: #020617;
+      padding: 25px;
+      border-radius: 12px;
+      transition: transform 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card h3 {
+      color: #38bdf8;
+      margin-bottom: 10px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #64748b;
+      background: #020617;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 600px) {
+      .hero h2 {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>MyProject</h1>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#features">Features</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h2>Build. Test. Launch.</h2>
+    <p>
+      This is a clean testing website deployed on Vercel.
+      Simple, fast, and fully customizable.
+    </p>
+    <button onclick="showMessage()">Try Feature</button>
+  </section>
+
+  <section class="features" id="features">
+    <div class="card">
+      <h3>Fast</h3>
+      <p>Optimized for speed and performance.</p>
+    </div>
+    <div class="card">
+      <h3>Simple</h3>
+      <p>Easy to edit and deploy anywhere.</p>
+    </div>
+    <div class="card">
+      <h3>Modern</h3>
+      <p>Clean UI using modern layout techniques.</p>
+    </div>
+  </section>
+
+  <footer id="contact">
+    © 2026 MyProject • Built for Testing
+  </footer>
+
+  <script>
+    function showMessage() {
+      alert("🎉 JavaScript is working perfectly!");
+    }
+  </script>
+
+</body>
+</html>
