@@ -3,120 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Attention Dashboard</title>
+    <title>O-Levels Cloud Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Modern UI Styling */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h1 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
-        p.subtitle { text-align: center; color: #666; margin-bottom: 30px; }
-        
-        /* Table Styling */
+        :root { --red: #d32f2f; --dark: #1a1a1a; --light: #f8d7da; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f4; margin: 0; }
+        header { background: var(--red); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .container { max-width: 800px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .filters button { background: white; border: 1px solid var(--red); color: var(--red); padding: 8px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .filters button.active { background: var(--red); color: white; }
+        .btn-delete { background: var(--dark); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background-color: #f8f9fa; color: #5f6368; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; padding: 15px; border-bottom: 2px solid #eee; text-align: left; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; }
-        
-        /* Status Highlighting */
-        .row-attentive { background-color: #d4edda !important; color: #155724; font-weight: bold; }
-        .row-distracted { background-color: #f8d7da !important; color: #721c24; font-weight: bold; }
-        .row-session { background-color: #e2e3e5 !important; color: #383d41; font-weight: 900; border: 2px solid #333 !important; }
-        
-        /* Status Message Styling */
-        #status-msg { text-align: center; padding: 20px; font-style: italic; color: #888; }
-        .error { color: #d93025; font-weight: bold; }
-        
-        /* Auto-refresh indicator */
-        .refresh-tag { font-size: 10px; color: #aaa; text-align: right; margin-top: 10px; }
+        th { text-align: left; padding: 15px; background: #eee; color: #555; }
+        td { padding: 15px; border-bottom: 1px solid #eee; }
+        .row-red { background: var(--light); color: #721c24; font-weight: bold; }
+        .row-green { background: #d4edda; color: #155724; font-weight: bold; }
+        .row-summary { border-left: 5px solid var(--red); font-weight: 900; background: #f1f1f1; }
     </style>
 </head>
 <body>
-
+<header><h1>LIVE.OLEVELS CLOUD PORTAL</h1></header>
 <div class="container">
-    <h1>Attention Monitor Cloud</h1>
-    <p class="subtitle">Live statistics synced from Google Sheets</p>
-
-    <div id="status-msg">Connecting to Google Cloud...</div>
-
-    <table id="results-table" style="display: none;">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Attention Status / Result</th>
-            </tr>
-        </thead>
-        <tbody id="table-body">
-            <!-- Data will be injected here -->
-        </tbody>
+    <div class="toolbar">
+        <div class="filters" id="filter-btns">
+            <button class="active" onclick="loadData('day', this)">Today</button>
+            <button onclick="loadData('week', this)">Week</button>
+            <button onclick="loadData('month', this)">Month</button>
+        </div>
+        <button class="btn-delete" onclick="clearData()"><i class="fas fa-trash"></i> Clear History</button>
+    </div>
+    <table>
+        <thead><tr><th>Time</th><th>Attentiveness Report</th></tr></thead>
+        <tbody id="table-body"></tbody>
     </table>
-    <div class="refresh-tag">Auto-refreshes every 30 seconds</div>
 </div>
 
 <script>
-    // 1. PASTE YOUR URL HERE
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwwJt1b58Vbq_hHHVBBG3_9AnroklFsuMnXDGoRG4skIk_FS6wkbi-o_zWqiytJTKug/exec";
+    async function loadData(filter, btn) {
+        document.querySelectorAll('#filter-btns button').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        
+        const res = await fetch(`/api/get?filter=${filter}`);
+        const data = await res.json();
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = "";
 
-    async function fetchStats() {
-        const tableBody = document.getElementById('table-body');
-        const statusMsg = document.getElementById('status-msg');
-        const table = document.getElementById('results-table');
-
-        try {
-            // Using redirect: 'follow' is mandatory for Google Script web apps
-            const response = await fetch(GOOGLE_URL, { redirect: 'follow' });
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            const time = new Date(row.created_at).toLocaleString();
             
-            if (!response.ok) throw new Error("Could not fetch data");
-
-            const data = await response.json();
-
-            // If sheet is empty or only has headers
-            if (!data || data.length <= 1) {
-                statusMsg.innerHTML = "No study data found in the cloud yet.";
-                return;
-            }
-
-            statusMsg.style.display = "none";
-            table.style.display = "table";
-            tableBody.innerHTML = "";
-
-            // Skip header row and reverse to show newest first
-            const logs = data.slice(1).reverse();
-
-            logs.forEach(row => {
-                const tr = document.createElement('tr');
-                const time = row[0];
-                const status = row[1];
-
-                // CSS Logic based on status text
-                if (status.includes("SESSION SUMMARY")) {
-                    tr.className = "row-session";
-                } else if (status.includes("5 MIN RESULTS")) {
-                    // Extract percentage to check if focused or distracted
-                    const match = status.match(/Not Attentive ([\d.]+)%/);
-                    const notAttentiveVal = match ? parseFloat(match[1]) : 0;
-                    
-                    if (notAttentiveVal >= 40) {
-                        tr.className = "row-distracted";
-                    } else {
-                        tr.className = "row-attentive";
-                    }
-                }
-
-                tr.innerHTML = `<td>${time}</td><td>${status}</td>`;
-                tableBody.appendChild(tr);
-            });
-
-        } catch (error) {
-            console.error("Fetch Error:", error);
-            statusMsg.innerHTML = `<span class="error">Error loading data.</span><br><small>Make sure your Google Script is deployed as 'Anyone' and you've created a 'New Version'.</small>`;
-        }
+            if(row.status.includes("SUMMARY") || row.status.includes("5 MIN")) tr.className = "row-summary";
+            const isBad = row.status.includes("Not");
+            tr.innerHTML = `<td>${time}</td><td class="${isBad ? 'row-red' : 'row-green'}">${row.status}</td>`;
+            tbody.appendChild(tr);
+        });
     }
 
-    // Initial load
-    fetchStats();
-
-    // Auto-refresh every 30 seconds
-    setInterval(fetchStats, 30000);
+    async function clearData() {
+        if(confirm("Delete everything?")) {
+            await fetch('/api/clear', { method: 'DELETE' });
+            loadData('day');
+        }
+    }
+    loadData('day');
 </script>
-
 </body>
 </html>
