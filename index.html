@@ -10,26 +10,29 @@
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; color: #333; }
         
         header { background-color: var(--primary-red); color: white; padding: 20px; text-align: center; border-bottom: 4px solid var(--dark-red); }
-        .container { max-width: 900px; margin: 30px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .container { max-width: 950px; margin: 30px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
 
         /* Toolbar UI */
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap; }
         
-        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-weight: 600; color: #444; outline: none; cursor: pointer; }
+        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-weight: 600; color: #444; cursor: pointer; outline: none; }
         select:focus { border-color: var(--primary-red); }
 
         .btn-action { padding: 10px 18px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-        .btn-delete { background: #333; color: white; }
-        .btn-delete:hover { background: #000; }
-        .btn-delete:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-delete-selected { background: #333; color: white; }
+        .btn-delete-selected:disabled { background: #ccc; cursor: not-allowed; }
 
         /* Table UI */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background-color: #f1f3f5; color: #495057; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 15px; border-bottom: 2px solid #dee2e6; text-align: left; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+        td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
        
         /* Checkbox styling */
         input[type="checkbox"] { transform: scale(1.2); cursor: pointer; accent-color: var(--primary-red); }
+
+        /* Individual Delete Button */
+        .btn-row-delete { background: none; border: none; color: #ccc; cursor: pointer; transition: 0.2s; padding: 5px 10px; }
+        .btn-row-delete:hover { color: var(--primary-red); transform: scale(1.2); }
 
         .status-attentive { color: #1e7e34; font-weight: bold; }
         .status-distracted { color: var(--primary-red); font-weight: bold; }
@@ -57,21 +60,22 @@
         </div>
         
         <div style="display:flex; gap:10px;">
-            <button id="delete-btn" class="btn-action btn-delete" onclick="deleteSelected()" disabled>
-                <i class="fas fa-trash"></i> Delete Selected
+            <button id="delete-btn" class="btn-action btn-delete-selected" onclick="deleteSelected()" disabled>
+                <i class="fas fa-trash"></i> Delete Selected (0)
             </button>
             <button class="btn-action" style="background:#eee;" onclick="clearAll()">Clear All</button>
         </div>
     </div>
 
-    <div id="status-msg">Loading history...</div>
+    <div id="status-msg">Fetching logs...</div>
 
     <table id="results-table" style="display: none;">
         <thead>
             <tr>
                 <th width="40"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
-                <th><i class="far fa-clock"></i> Timestamp</th>
-                <th><i class="fas fa-poll"></i> Report</th>
+                <th>Timestamp</th>
+                <th>Attentiveness Report</th>
+                <th width="50">Action</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -115,12 +119,49 @@
                     <td><input type="checkbox" class="row-checkbox" value="${row.id}" onchange="handleRowSelect(this)"></td>
                     <td>${time}</td>
                     <td class="${isBad ? 'status-distracted' : 'status-attentive'}">${row.status}</td>
+                    <td>
+                        <button class="btn-row-delete" onclick="deleteSingle(${row.id})" title="Delete this row">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
                 `;
                 tableBody.appendChild(tr);
             });
         } catch (e) {
-            statusMsg.innerHTML = "Error syncing with Cloud.";
+            statusMsg.innerHTML = "Sync Error.";
         }
+    }
+
+    // Individual Delete Logic
+    async function deleteSingle(id) {
+        if (!confirm("Delete this specific report?")) return;
+        await fetch('/api/delete', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids: [id] })
+        });
+        fetchHistory();
+    }
+
+    // Bulk Delete Logic
+    async function deleteSelected() {
+        if (!confirm(`Delete ${selectedIds.size} selected reports?`)) return;
+        await fetch('/api/delete', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+        });
+        fetchHistory();
+    }
+
+    async function clearAll() {
+        if (!confirm("Permanently wipe ENTIRE cloud history?")) return;
+        await fetch('/api/delete', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ all: true })
+        });
+        fetchHistory();
     }
 
     function handleRowSelect(cb) {
@@ -145,34 +186,13 @@
         btn.innerHTML = `<i class="fas fa-trash"></i> Delete Selected (${selectedIds.size})`;
     }
 
-    async function deleteSelected() {
-        if (!confirm(`Delete ${selectedIds.size} selected reports?`)) return;
-        
-        await fetch('/api/delete', {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ ids: Array.from(selectedIds) })
-        });
-        fetchHistory();
-    }
-
-    async function clearAll() {
-        if (!confirm("Permanently wipe ENTIRE cloud history?")) return;
-        await fetch('/api/delete', {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ all: true })
-        });
-        fetchHistory();
-    }
-
     function changeFilter(val) {
         currentFilter = val;
         fetchHistory();
     }
 
     fetchHistory();
-    setInterval(fetchHistory, 30000); // Auto refresh
+    setInterval(fetchHistory, 30000);
 </script>
 
 </body>
