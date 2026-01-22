@@ -4,41 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>O-Levels Study Dashboard</title>
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Red Theme Professional UI */
         :root { --primary-red: #d32f2f; --dark-red: #b71c1c; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; color: #333; }
         
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; padding: 0; color: #333; }
-        
-        /* Header */
-        header { background-color: var(--primary-red); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-bottom: 4px solid var(--dark-red); }
-        header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
-
+        header { background-color: var(--primary-red); color: white; padding: 20px; text-align: center; border-bottom: 4px solid var(--dark-red); }
         .container { max-width: 900px; margin: 30px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
 
-        /* Toolbar / Filters */
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        /* Toolbar UI */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap; }
         
-        .filters button { background: white; border: 1px solid var(--primary-red); color: var(--primary-red); padding: 8px 18px; cursor: pointer; border-radius: 5px; font-weight: 600; transition: 0.3s; }
-        .filters button.active { background: var(--primary-red); color: white; }
-        
-        .delete-btn { background: #333; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .delete-btn:hover { background: #000; }
+        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-weight: 600; color: #444; outline: none; cursor: pointer; }
+        select:focus { border-color: var(--primary-red); }
 
-        /* Table Styling */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; border-radius: 8px; overflow: hidden; }
-        th { background-color: #f1f3f5; color: #495057; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; padding: 15px; border-bottom: 2px solid #dee2e6; text-align: left; }
+        .btn-action { padding: 10px 18px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn-delete { background: #333; color: white; }
+        .btn-delete:hover { background: #000; }
+        .btn-delete:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Table UI */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #f1f3f5; color: #495057; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 15px; border-bottom: 2px solid #dee2e6; text-align: left; }
         td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; }
        
-        /* Row Highlighting (Matching O-Levels logic) */
-        .row-attentive { color: #1e7e34; font-weight: bold; }
-        .row-distracted { color: var(--primary-red); font-weight: bold; }
-        .row-summary { background-color: #f8f9fa !important; color: #343a40; font-weight: 900; border-left: 5px solid var(--primary-red) !important; }
+        /* Checkbox styling */
+        input[type="checkbox"] { transform: scale(1.2); cursor: pointer; accent-color: var(--primary-red); }
+
+        .status-attentive { color: #1e7e34; font-weight: bold; }
+        .status-distracted { color: var(--primary-red); font-weight: bold; }
+        .row-summary { background-color: #fff9f9 !important; font-weight: 900; border-left: 5px solid var(--primary-red) !important; }
        
         #status-msg { text-align: center; padding: 30px; font-style: italic; color: #999; }
-        .refresh-tag { font-size: 11px; color: #bbb; text-align: right; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -49,45 +46,56 @@
 
 <div class="container">
     <div class="toolbar">
-        <div class="filters" id="filter-group">
-            <button class="active" onclick="changeFilter('day', this)">Today</button>
-            <button onclick="changeFilter('week', this)">This Week</button>
-            <button onclick="changeFilter('month', this)">This Month</button>
-            <button onclick="changeFilter('all', this)">All Time</button>
+        <div>
+            <label style="font-weight:bold; margin-right:8px;">View Period:</label>
+            <select id="filter-dropdown" onchange="changeFilter(this.value)">
+                <option value="day">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="all">All Time</option>
+            </select>
         </div>
-        <button class="delete-btn" onclick="clearCloudHistory()"><i class="fas fa-trash-alt"></i> Clear Data</button>
+        
+        <div style="display:flex; gap:10px;">
+            <button id="delete-btn" class="btn-action btn-delete" onclick="deleteSelected()" disabled>
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+            <button class="btn-action" style="background:#eee;" onclick="clearAll()">Clear All</button>
+        </div>
     </div>
 
-    <div id="status-msg">Connecting to cloud database...</div>
+    <div id="status-msg">Loading history...</div>
 
     <table id="results-table" style="display: none;">
         <thead>
             <tr>
+                <th width="40"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
                 <th><i class="far fa-clock"></i> Timestamp</th>
-                <th><i class="fas fa-poll"></i> Result / Status</th>
+                <th><i class="fas fa-poll"></i> Report</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
     </table>
-    <div class="refresh-tag"><i class="fas fa-sync-alt"></i> Auto-syncing with Cloud</div>
 </div>
 
 <script>
     let currentFilter = 'day';
+    let selectedIds = new Set();
 
     async function fetchHistory() {
         const tableBody = document.getElementById('table-body');
         const statusMsg = document.getElementById('status-msg');
         const table = document.getElementById('results-table');
+        selectedIds.clear();
+        updateDeleteButton();
 
         try {
-            // Fetch from your Vercel GET API
             const response = await fetch(`/api/get?filter=${currentFilter}`);
             const data = await response.json();
 
             if (!data || data.length === 0) {
                 statusMsg.style.display = "block";
-                statusMsg.innerHTML = "No study data found for this period.";
+                statusMsg.innerHTML = "No study data found.";
                 table.style.display = "none";
                 return;
             }
@@ -98,58 +106,73 @@
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                
-                // USE time_label (Sent by extension) to match Google Sheets exactly
-                const time = row.time_label || new Date(row.created_at).toLocaleString();
-                const status = row.status || "";
+                if (row.status.includes("SUMMARY") || row.status.includes("5 MIN")) tr.className = "row-summary";
 
-                // APPLY STYLING LOGIC
-                if (status.includes("SUMMARY") || status.includes("5 MIN")) {
-                    tr.className = "row-summary";
-                }
-                
-                // Color coding for status text
-                const statusClass = status.includes("Not") ? "row-distracted" : "row-attentive";
+                const isBad = row.status.includes("Not");
+                const time = row.time_label || new Date(row.created_at).toLocaleString();
 
                 tr.innerHTML = `
+                    <td><input type="checkbox" class="row-checkbox" value="${row.id}" onchange="handleRowSelect(this)"></td>
                     <td>${time}</td>
-                    <td class="${statusClass}">${status}</td>
+                    <td class="${isBad ? 'status-distracted' : 'status-attentive'}">${row.status}</td>
                 `;
                 tableBody.appendChild(tr);
             });
-
-        } catch (error) {
-            console.error("Fetch Error:", error);
-            statusMsg.innerHTML = "Error loading data from Supabase.";
+        } catch (e) {
+            statusMsg.innerHTML = "Error syncing with Cloud.";
         }
     }
 
-    function changeFilter(type, btn) {
-        document.querySelectorAll('#filter-group button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = type;
-        fetchHistory(); // Refresh table with filter
+    function handleRowSelect(cb) {
+        if (cb.checked) selectedIds.add(cb.value);
+        else selectedIds.delete(cb.value);
+        updateDeleteButton();
     }
 
-    async function clearCloudHistory() {
-        if (confirm("Are you sure you want to permanently delete ALL study history from the cloud?")) {
-            try {
-                const res = await fetch('/api/clear', { method: 'DELETE' });
-                if (res.ok) {
-                    alert("History cleared successfully.");
-                    fetchHistory();
-                }
-            } catch (e) {
-                alert("Error clearing history.");
-            }
-        }
+    function toggleSelectAll(masterCb) {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = masterCb.checked;
+            if (cb.checked) selectedIds.add(cb.value);
+            else selectedIds.delete(cb.value);
+        });
+        updateDeleteButton();
     }
 
-    // Initial load
+    function updateDeleteButton() {
+        const btn = document.getElementById('delete-btn');
+        btn.disabled = selectedIds.size === 0;
+        btn.innerHTML = `<i class="fas fa-trash"></i> Delete Selected (${selectedIds.size})`;
+    }
+
+    async function deleteSelected() {
+        if (!confirm(`Delete ${selectedIds.size} selected reports?`)) return;
+        
+        await fetch('/api/delete', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+        });
+        fetchHistory();
+    }
+
+    async function clearAll() {
+        if (!confirm("Permanently wipe ENTIRE cloud history?")) return;
+        await fetch('/api/delete', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ all: true })
+        });
+        fetchHistory();
+    }
+
+    function changeFilter(val) {
+        currentFilter = val;
+        fetchHistory();
+    }
+
     fetchHistory();
-
-    // Auto-refresh every 30 seconds
-    setInterval(fetchHistory, 30000);
+    setInterval(fetchHistory, 30000); // Auto refresh
 </script>
 
 </body>
