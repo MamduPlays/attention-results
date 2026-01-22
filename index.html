@@ -3,70 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O-Levels Cloud Dashboard</title>
+    <title>O-Levels Study Dashboard</title>
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --red: #d32f2f; --dark: #1a1a1a; --light: #f8d7da; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f4; margin: 0; }
-        header { background: var(--red); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .container { max-width: 800px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .filters button { background: white; border: 1px solid var(--red); color: var(--red); padding: 8px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        .filters button.active { background: var(--red); color: white; }
-        .btn-delete { background: var(--dark); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; padding: 15px; background: #eee; color: #555; }
-        td { padding: 15px; border-bottom: 1px solid #eee; }
-        .row-red { background: var(--light); color: #721c24; font-weight: bold; }
-        .row-green { background: #d4edda; color: #155724; font-weight: bold; }
-        .row-summary { border-left: 5px solid var(--red); font-weight: 900; background: #f1f1f1; }
+        /* Red Theme Professional UI */
+        :root { --primary-red: #d32f2f; --dark-red: #b71c1c; --bg: #f8f9fa; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; padding: 0; color: #333; }
+        
+        /* Header */
+        header { background-color: var(--primary-red); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-bottom: 4px solid var(--dark-red); }
+        header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+
+        .container { max-width: 900px; margin: 30px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+
+        /* Toolbar / Filters */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        
+        .filters button { background: white; border: 1px solid var(--primary-red); color: var(--primary-red); padding: 8px 18px; cursor: pointer; border-radius: 5px; font-weight: 600; transition: 0.3s; }
+        .filters button.active { background: var(--primary-red); color: white; }
+        
+        .delete-btn { background: #333; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .delete-btn:hover { background: #000; }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; border-radius: 8px; overflow: hidden; }
+        th { background-color: #f1f3f5; color: #495057; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; padding: 15px; border-bottom: 2px solid #dee2e6; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+       
+        /* Row Highlighting (Matching O-Levels logic) */
+        .row-attentive { color: #1e7e34; font-weight: bold; }
+        .row-distracted { color: var(--primary-red); font-weight: bold; }
+        .row-summary { background-color: #f8f9fa !important; color: #343a40; font-weight: 900; border-left: 5px solid var(--primary-red) !important; }
+       
+        #status-msg { text-align: center; padding: 30px; font-style: italic; color: #999; }
+        .refresh-tag { font-size: 11px; color: #bbb; text-align: right; margin-top: 15px; }
     </style>
 </head>
 <body>
-<header><h1>LIVE.OLEVELS CLOUD PORTAL</h1></header>
+
+<header>
+    <h1><i class="fas fa-graduation-cap"></i> LIVE.OLEVELS CLOUD</h1>
+</header>
+
 <div class="container">
     <div class="toolbar">
-        <div class="filters" id="filter-btns">
-            <button class="active" onclick="loadData('day', this)">Today</button>
-            <button onclick="loadData('week', this)">Week</button>
-            <button onclick="loadData('month', this)">Month</button>
+        <div class="filters" id="filter-group">
+            <button class="active" onclick="changeFilter('day', this)">Today</button>
+            <button onclick="changeFilter('week', this)">This Week</button>
+            <button onclick="changeFilter('month', this)">This Month</button>
+            <button onclick="changeFilter('all', this)">All Time</button>
         </div>
-        <button class="btn-delete" onclick="clearData()"><i class="fas fa-trash"></i> Clear History</button>
+        <button class="delete-btn" onclick="clearCloudHistory()"><i class="fas fa-trash-alt"></i> Clear Data</button>
     </div>
-    <table>
-        <thead><tr><th>Time</th><th>Attentiveness Report</th></tr></thead>
+
+    <div id="status-msg">Connecting to cloud database...</div>
+
+    <table id="results-table" style="display: none;">
+        <thead>
+            <tr>
+                <th><i class="far fa-clock"></i> Timestamp</th>
+                <th><i class="fas fa-poll"></i> Result / Status</th>
+            </tr>
+        </thead>
         <tbody id="table-body"></tbody>
     </table>
+    <div class="refresh-tag"><i class="fas fa-sync-alt"></i> Auto-syncing with Cloud</div>
 </div>
 
 <script>
-    async function loadData(filter, btn) {
-        document.querySelectorAll('#filter-btns button').forEach(b => b.classList.remove('active'));
-        if(btn) btn.classList.add('active');
-        
-        const res = await fetch(`/api/get?filter=${filter}`);
-        const data = await res.json();
-        const tbody = document.getElementById('table-body');
-        tbody.innerHTML = "";
+    let currentFilter = 'day';
 
-        data.forEach(row => {
-            const tr = document.createElement('tr');
-            const time = new Date(row.created_at).toLocaleString();
-            
-            if(row.status.includes("SUMMARY") || row.status.includes("5 MIN")) tr.className = "row-summary";
-            const isBad = row.status.includes("Not");
-            tr.innerHTML = `<td>${time}</td><td class="${isBad ? 'row-red' : 'row-green'}">${row.status}</td>`;
-            tbody.appendChild(tr);
-        });
-    }
+    async function fetchHistory() {
+        const tableBody = document.getElementById('table-body');
+        const statusMsg = document.getElementById('status-msg');
+        const table = document.getElementById('results-table');
 
-    async function clearData() {
-        if(confirm("Delete everything?")) {
-            await fetch('/api/clear', { method: 'DELETE' });
-            loadData('day');
+        try {
+            // Fetch from your Vercel GET API
+            const response = await fetch(`/api/get?filter=${currentFilter}`);
+            const data = await response.json();
+
+            if (!data || data.length === 0) {
+                statusMsg.style.display = "block";
+                statusMsg.innerHTML = "No study data found for this period.";
+                table.style.display = "none";
+                return;
+            }
+
+            statusMsg.style.display = "none";
+            table.style.display = "table";
+            tableBody.innerHTML = "";
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // USE time_label (Sent by extension) to match Google Sheets exactly
+                const time = row.time_label || new Date(row.created_at).toLocaleString();
+                const status = row.status || "";
+
+                // APPLY STYLING LOGIC
+                if (status.includes("SUMMARY") || status.includes("5 MIN")) {
+                    tr.className = "row-summary";
+                }
+                
+                // Color coding for status text
+                const statusClass = status.includes("Not") ? "row-distracted" : "row-attentive";
+
+                tr.innerHTML = `
+                    <td>${time}</td>
+                    <td class="${statusClass}">${status}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            statusMsg.innerHTML = "Error loading data from Supabase.";
         }
     }
-    loadData('day');
+
+    function changeFilter(type, btn) {
+        document.querySelectorAll('#filter-group button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = type;
+        fetchHistory(); // Refresh table with filter
+    }
+
+    async function clearCloudHistory() {
+        if (confirm("Are you sure you want to permanently delete ALL study history from the cloud?")) {
+            try {
+                const res = await fetch('/api/clear', { method: 'DELETE' });
+                if (res.ok) {
+                    alert("History cleared successfully.");
+                    fetchHistory();
+                }
+            } catch (e) {
+                alert("Error clearing history.");
+            }
+        }
+    }
+
+    // Initial load
+    fetchHistory();
+
+    // Auto-refresh every 30 seconds
+    setInterval(fetchHistory, 30000);
 </script>
+
 </body>
 </html>
